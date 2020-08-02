@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Letterboard text validator</title>
+
+  <!-- Load React. -->
+  <!-- Note: when deploying, replace "development.js" with "production.min.js". -->
+  <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js" crossorigin></script>
+</head>
+
+<body>
+
+  <h2>Letterboard message text validator</h2>
+  <p>
+    Enter the text that you wish to display on the letterboard into the fields below.
+    The webpage will enforce length limits on each line, and will ensure that the text respects the inventory of
+    character cards.
+  </p>
+  <p>
+    The webpage cannot guarantee that the text will fit on the letterboard, as it does not (yet) account for variations
+    in card widths.
+  </p>
+
+  <!-- React component root. See https://reactjs.org/docs/add-react-to-a-website.html -->
+  <div id="app_container"></div>
+
+  <!-- Load the React portion of the page. -->
+  <!-- For better performance, we would use Babel to process the script at build time. -->
+  <!-- It would be nice to put the script in a separate file, but doing so is no longer possible because of changes to local file security policies (https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/#CVE-2019-11730) -->
+  <script type="text/babel">
+    'use strict';
+
+    class LikeButton extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { liked: false };
+      }
+
+      render() {
+        if (this.state.liked) {
+          return 'You liked this.';
+        }
+
+        return (
+          <button onClick={() => this.setState({ liked: true })}>
+            Like
+          </button>
+        );
+      }
+    }
+
+    const domContainer = document.querySelector('#app_container');
+    ReactDOM.render(<LikeButton />, domContainer);
+  </script>
+
+</body>
+
+</html>
