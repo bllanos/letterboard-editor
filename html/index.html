@@ -34,6 +34,80 @@
   <script type="text/babel">
     'use strict';
 
+    /**
+     * The number of sides of the sign
+     */
+    const nSides = 2;
+
+    /**
+     * The number of lines per side
+     */
+    const nLinesPerSide = 4;
+
+    /**
+     * The number of characters that can fit on a line
+     */
+    const maxCharactersPerLine = 20;
+
+    /**
+     * A mapping from characters to cards that can represent
+     * more than one kind of character.
+     */
+    const charactersToCards = {
+      "0": "Oor0",
+      "O": "Oor0",
+      "6": "6or9",
+      "9": "6or9"
+    }
+
+    /**
+     * Inventory of character cards
+     */
+    const cardsToCounts = {
+      "A": 18,
+      "B": 10,
+      "C": 10,
+      "D": 10,
+      "E": 24,
+      "F": 10,
+      "G": 16,
+      "H": 10,
+      "I": 14,
+      "J": 8,
+      "K": 10,
+      "L": 10,
+      "M": 16,
+      "N": 10,
+      "Oor0": 26,
+      "P": 10,
+      "Q": 6,
+      "R": 16,
+      "S": 18,
+      "T": 18,
+      "U": 10,
+      "V": 8,
+      "W": 10,
+      "X": 8,
+      "Y": 10,
+      "Z": 6,
+      "1": 8,
+      "2": 8,
+      "3": 8,
+      "4": 8,
+      "5": 8,
+      "6or9": 16,
+      "7": 8,
+      "8": 8,
+      "$": 8,
+      "&": 8,
+      "-": 8,
+      "¢": 8,
+      "@": 8,
+      "%": 8,
+      ":": 8,
+      ".": 8
+    }
+
     class LikeButton extends React.Component {
       constructor(props) {
         super(props);
