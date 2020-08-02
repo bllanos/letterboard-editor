@@ -37,23 +37,23 @@
     /**
      * The number of sides of the sign
      */
-    const nSides = 2;
+    const N_SIDES = 2;
 
     /**
      * The number of lines per side
      */
-    const nLinesPerSide = 4;
+    const N_LINESPERSIDE = 4;
 
     /**
      * The number of characters that can fit on a line
      */
-    const maxCharactersPerLine = 20;
+    const MAX_CHARACTERSPERLINE = 20;
 
     /**
      * A mapping from characters to cards that can represent
      * more than one kind of character.
      */
-    const charactersToCards = {
+    const CHARACTERS_TO_CARDS = {
       "0": "Oor0",
       "O": "Oor0",
       "6": "6or9",
@@ -63,7 +63,7 @@
     /**
      * Inventory of character cards
      */
-    const cardsToCounts = {
+    const CARDS_TO_COUNTS = {
       "A": 18,
       "B": 10,
       "C": 10,
@@ -108,27 +108,119 @@
       ".": 8
     }
 
-    class LikeButton extends React.Component {
-      constructor(props) {
-        super(props);
-        this.state = { liked: false };
+    /**
+     * The top-level container for the app
+     */
+    const App = () => {
+      return (
+        <React.Fragment>
+          <MessageCompositor nSides={N_SIDES} nLinesPerSide={N_LINESPERSIDE} />
+          <InventoryView />
+          <MessagePrinter />
+        </React.Fragment>
+      );
+    }
+
+    /**
+     * The interface for entering a trial message
+     */
+    const MessageCompositor = (props) => {
+      let sides = [];
+      for (let i = 0; i < props.nSides; ++i) {
+        sides[i] = (<SignSide id={i} key={i.toString()} nLinesPerSide={props.nLinesPerSide} />);
       }
+      return (
+        <React.Fragment>
+          <h3>Compose a message</h3>
+          {sides}
+        </React.Fragment>
+      );
+    }
 
-      render() {
-        if (this.state.liked) {
-          return 'You liked this.';
-        }
+    /**
+     * The interface for entering text for the lines of a side of the sign
+     */
+    const SignSide = (props) => {
+      const id = props.id;
+      let lines = [];
+      for (let i = 0; i < props.nLinesPerSide; ++i) {
+        lines[i] = (<SignLine id={i} key={i.toString()} />);
+      }
+      return (
+        <React.Fragment>
+          <h4>Side {id + 1}: {props.nLinesPerSide} lines</h4>
+          <ol>
+            {lines}
+          </ol>
+        </React.Fragment>
+      );
+    }
 
+    /**
+     * The interface for entering text for one line of a side of the sign
+     */
+    const SignLine = (props) => {
+      const id = props.id;
+      const handleChange = (event) => {
+        console.log("Text entered in line ", id, ": ", event.target.value);
+      }
+      return (
+        <li>
+          <input type="text" value={id} onChange={handleChange} />
+          <ValidationMessage/>
+        </li>
+      );
+    }
+
+    /**
+     * A message indicating a message validation check has detected a problem
+     */
+    const ValidationMessage = (props) => {
+      if (props.text) {
         return (
-          <button onClick={() => this.setState({ liked: true })}>
-            Like
-          </button>
+          <p style={{ color: 'red' }}>{props.text}</p>
         );
+      } else {
+        return null;
       }
     }
 
+    /**
+     * A display of the available and remaining character cards
+     */
+    const InventoryView = (props) => {
+      return (
+        <h3>Inventory of character cards</h3>
+      );
+    }
+
+    /**
+     * A display of a valid message for the letterboard,
+     * generated to allow for easy copy and paste into another application
+     */
+    const MessagePrinter = (props) => {
+      let content = null;
+      if (props.hasError) {
+        content = (
+          <ValidationMessage text={
+            "Please address the validation error(s), after which this section will display"
+          } />
+        );
+      } else {
+        content = (
+          <p>This is a copy of the text you entered above, that you can easily paste into another program (such as an email):</p>
+        );
+      }
+      return (
+        <React.Fragment>
+          <h3>Full message text</h3>
+          {content}
+        </React.Fragment>
+      );
+    }
+
     const domContainer = document.querySelector('#app_container');
-    ReactDOM.render(<LikeButton />, domContainer);
+    ReactDOM.render(<App />, domContainer);
   </script>
 
 </body>
