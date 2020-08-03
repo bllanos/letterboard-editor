@@ -109,14 +109,151 @@
     }
 
     /**
+     * A class encapsulating letterboard text
+     *
+     * Functionality:
+     * - Text storage
+     * - Concatenated message output
+     * - Line length validation
+     * - Counts character by type
+     */
+    class SignMessage {
+
+      constructor(nSides, nLinesPerSide, maxCharactersPerLine) {
+        this.nSides = nSides;
+        this.nLinesPerSide = nLinesPerSide;
+        this.maxCharactersPerLine = maxCharactersPerLine;
+
+        this.text = [];
+        for (let i = 0; i < this.nSides; i++) {
+          this.text[i] = [];
+          for (let j = 0; j < this.nLinesPerSide; j++) {
+            this.text[i][j] = {
+              value: "",
+              error: null
+            };
+          }
+        }
+      }
+
+      validateIndices(side, line) {
+        if (side >= this.nSides || side < 0) {
+          throw new Error("Unknown side: ", side);
+        }
+        if (line >= this.nLinesPerSide || line < 0) {
+          throw new Error("Unknown line: ", line);
+        }
+      }
+
+      static removeWhitespace(str) {
+        return str.replace(/\s+/g, '');
+      }
+
+      /** 
+       * React requires state to be immutable, so the setter function
+       * passes a modified clone of this object to a callback instead
+       * of modifying this object.
+       */
+      setLine(side, line, value, changeCb) {
+        this.validateIndices(side, line);
+
+        let result = new SignMessage(this.nSides, this.nLinesPerSide, this.maxCharactersPerLine);
+        result.text = this.text;
+        let newValue = value.toUpperCase();
+        result.text[side][line].value = newValue;
+        if (SignMessage.removeWhitespace(newValue).length > result.maxCharactersPerLine) {
+          result.text[side][line].error = "Line exceeds maximum of " + result.maxCharactersPerLine + " non-whitespace characters";
+        } else {
+          result.text[side][line].error = null;
+        }
+
+        changeCb(result);
+      }
+
+      getSideLineSetters(side) {
+        this.validateIndices(side, 0);
+        return ((line) => {
+          this.validateIndices(0, line);
+          return ((value, changeCb) => {
+            this.setLine(side, line, value, changeCb);
+          }).bind(this);
+        }).bind(this);
+      }
+
+      getSideLineGetters(side) {
+        this.validateIndices(side, 0);
+        return ((line) => {
+          this.validateIndices(0, line);
+          return (() => {
+            return {
+              value: this.text[side][line].value,
+              error: this.text[side][line].error
+            }
+          }).bind(this);
+        }).bind(this);
+      }
+
+      hasLineErrors() {
+        const result = this.text.reduce((acc, cur) => {
+          return acc || cur.reduce((acc, cur) => {
+            return acc || cur.error;
+          }, null);
+        }, null);
+        if (result) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+
+      getCharacterCounts() {
+        return this.text.reduce((acc, cur) => {
+          const sideResult = cur.reduce((acc, cur) => {
+            const str = SignMessage.removeWhitespace(cur);
+            let i = str.length;
+            while (i--) {
+              const character = str.charAt(i);
+              if (acc[character]) {
+                acc[character] += 1;
+              } else {
+                acc[character] = 1;
+              }
+            }
+          }, {});
+
+          for (const character in sideResult) {
+            if (acc[character]) {
+              acc[character] += sideResult[character];
+            } else {
+              acc[character] = sideResult[character];
+            }
+          }
+          return acc;
+        }, {});
+      }
+    }
+
+    /**
      * The top-level container for the app
      */
     const App = () => {
+      const [signMessage, setSignMessage] = React.useState(() => {
+        return new SignMessage(
+          N_SIDES, N_LINESPERSIDE, MAX_CHARACTERSPERLINE
+        );
+      })
+
       return (
         <React.Fragment>
-          <MessageCompositor nSides={N_SIDES} nLinesPerSide={N_LINESPERSIDE} />
+          <MessageCompositor
+            nSides={N_SIDES}
+            nLinesPerSide={N_LINESPERSIDE}
+            getSideLineSetters={signMessage.getSideLineSetters.bind(signMessage)}
+            getSideLineGetters={signMessage.getSideLineGetters.bind(signMessage)}
+            changeCb={setSignMessage}
+          />
           <InventoryView />
-          <MessagePrinter />
+          <MessagePrinter hasError={signMessage.hasLineErrors()} />
         </React.Fragment>
       );
     }
@@ -127,7 +264,15 @@
     const MessageCompositor = (props) => {
       let sides = [];
       for (let i = 0; i < props.nSides; ++i) {
-        sides[i] = (<SignSide id={i} key={i.toString()} nLinesPerSide={props.nLinesPerSide} />);
+        sides[i] = (<SignSide
+          id={i}
+          getLineSetters={props.getSideLineSetters(i)}
+          getLineGetters={props.getSideLineGetters(i)}
+          changeCb={props.changeCb}
+          key={i.toString()}
+          nLinesPerSide={props.nLinesPerSide}
+        />
+        );
       }
       return (
         <React.Fragment>
@@ -141,14 +286,19 @@
      * The interface for entering text for the lines of a side of the sign
      */
     const SignSide = (props) => {
-      const id = props.id;
       let lines = [];
       for (let i = 0; i < props.nLinesPerSide; ++i) {
-        lines[i] = (<SignLine id={i} key={i.toString()} />);
+        lines[i] = (<SignLine
+          setLine={props.getLineSetters(i)}
+          getLine={props.getLineGetters(i)}
+          changeCb={props.changeCb}
+          key={i.toString()}
+        />
+        );
       }
       return (
         <React.Fragment>
-          <h4>Side {id + 1}: {props.nLinesPerSide} lines</h4>
+          <h4>Side {props.id + 1}: {props.nLinesPerSide} lines</h4>
           <ol>
             {lines}
           </ol>
@@ -160,14 +310,14 @@
      * The interface for entering text for one line of a side of the sign
      */
     const SignLine = (props) => {
-      const id = props.id;
       const handleChange = (event) => {
-        console.log("Text entered in line ", id, ": ", event.target.value);
+        props.setLine(event.target.value, props.changeCb);
       }
+      const data = props.getLine();
       return (
         <li>
-          <input type="text" value={id} onChange={handleChange} />
-          <ValidationMessage/>
+          <input type="text" value={data.value} onChange={handleChange} />
+          <ValidationMessage text={data.error} />
         </li>
       );
     }
@@ -219,6 +369,9 @@
       );
     }
 
+    /**
+     * Render the React application
+     */
     const domContainer = document.querySelector('#app_container');
     ReactDOM.render(<App />, domContainer);
   </script>
