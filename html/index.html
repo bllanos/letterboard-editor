@@ -223,7 +223,7 @@
       getCharacterCounts() {
         return this.text.reduce((acc, cur) => {
           const sideResult = cur.reduce((acc, cur) => {
-            const str = SignMessage.removeWhitespace(cur);
+            const str = SignMessage.removeWhitespace(cur.value);
             let i = str.length;
             while (i--) {
               const character = str.charAt(i);
@@ -233,6 +233,7 @@
                 acc[character] = 1;
               }
             }
+            return acc;
           }, {});
 
           for (const character in sideResult) {
@@ -244,6 +245,68 @@
           }
           return acc;
         }, {});
+      }
+
+      static cardsToText(charactersToCards, cards) {
+        const arr = Array.isArray(cards) ? cards : [cards];
+        return arr.map((cur) => {
+          let listOfCharacters = [];
+          for (const character in charactersToCards) {
+            if (charactersToCards[character] === cur) {
+              listOfCharacters.push(character);
+            }
+          }
+          if (listOfCharacters.length === 0) {
+            return cur.toString();
+          } else if (listOfCharacters.length > 1) {
+            return '(' + listOfCharacters.slice(0, -1).join(', ') + ' or ' + listOfCharacters.slice(-1) + ')';
+          } else {
+            return listOfCharacters[0].toString();
+          }
+        }).join(', ');
+      }
+
+      getInventoryReport(charactersToCards, cardsToCounts) {
+        const used = this.getCharacterCounts();
+
+        /* Determine how many cards remain, and whether some characters
+         * do not correspond to any cards.
+         */
+        let remainingCards = {};
+        for (const card in cardsToCounts) {
+          remainingCards[card] = cardsToCounts[card];
+        }
+        let unknownCards = {};
+        let insufficientCards = {};
+        for (const character in used) {
+          const card = charactersToCards[character] ? charactersToCards[character] : character;
+          if (typeof remainingCards[card] === "number") {
+            remainingCards[card] -= used[character];
+            if (remainingCards[card] < 0) {
+              insufficientCards[card] = true;
+            }
+          } else {
+            unknownCards[card] = true;
+          }
+        }
+
+        /* Create an inventory of original and remaining cards
+         * with nicer names for the cards.
+         */
+        let inventoryByCard = [];
+        for (const card in cardsToCounts) {
+          inventoryByCard.push({
+            key: card,
+            name: SignMessage.cardsToText(charactersToCards, card),
+            original: cardsToCounts[card],
+            remaining: remainingCards[card]
+          });
+        }
+        return {
+          unknownCards: Object.keys(unknownCards).join(', '),
+          insufficientCards: SignMessage.cardsToText(charactersToCards, Object.keys(insufficientCards)),
+          inventoryByCard
+        }
       }
     }
 
@@ -257,6 +320,10 @@
         );
       })
 
+      const inventoryReport = signMessage.getInventoryReport(
+        CHARACTERS_TO_CARDS, CARDS_TO_COUNTS
+      );
+
       return (
         <React.Fragment>
           <MessageCompositor
@@ -266,9 +333,11 @@
             getSideLineGetters={signMessage.getSideLineGetters.bind(signMessage)}
             changeCb={setSignMessage}
           />
-          <InventoryView />
+          <InventoryView
+            inventoryReport={inventoryReport}
+          />
           <MessagePrinter
-            hasError={signMessage.hasLineErrors()}
+            hasError={(signMessage.hasLineErrors() || inventoryReport.unknownCards || inventoryReport.insufficientCards)}
           >
             {signMessage.getConcatenatedLinesAsJSX()}
           </MessagePrinter>
@@ -356,9 +425,17 @@
     /**
      * A display of the available and remaining character cards
      */
-    const InventoryView = (props) => {
+    const InventoryView = ({ inventoryReport }) => {
       return (
-        <h3>Inventory of character cards</h3>
+        <React.Fragment>
+          <h3>Inventory of character cards</h3>
+          {inventoryReport.unknownCards ? (<ValidationMessage
+            text={"Unknown characters: " + inventoryReport.unknownCards}
+          />) : null}
+          {inventoryReport.insufficientCards ? (<ValidationMessage
+            text={"Too many of the following characters were used: " + inventoryReport.insufficientCards}
+          />) : null}
+        </React.Fragment>
       );
     }
 
