@@ -206,6 +206,20 @@
         }
       }
 
+      getConcatenatedLinesAsJSX() {
+        return this.text.map((cur, idx) => {
+          const lines = cur.map((cur, idx) => {
+            return (<p key={idx.toString()}>{cur.value ? cur.value : "(blank)"}</p>);
+          });
+          return (
+            <React.Fragment key={idx.toString()}>
+              <h5>{"Side " + (idx + 1)}</h5>
+              {lines}
+            </React.Fragment>
+          );
+        });
+      }
+
       getCharacterCounts() {
         return this.text.reduce((acc, cur) => {
           const sideResult = cur.reduce((acc, cur) => {
@@ -253,7 +267,11 @@
             changeCb={setSignMessage}
           />
           <InventoryView />
-          <MessagePrinter hasError={signMessage.hasLineErrors()} />
+          <MessagePrinter
+            hasError={signMessage.hasLineErrors()}
+          >
+            {signMessage.getConcatenatedLinesAsJSX()}
+          </MessagePrinter>
         </React.Fragment>
       );
     }
@@ -358,7 +376,10 @@
         );
       } else {
         content = (
-          <p>This is a copy of the text you entered above, that you can easily paste into another program (such as an email):</p>
+          <React.Fragment>
+            <p>This is a copy of the text you entered above, that you can easily paste into another program (such as an email):</p>
+            {props.children}
+          </React.Fragment>
         );
       }
       return (
