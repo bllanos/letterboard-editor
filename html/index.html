@@ -21,8 +21,10 @@
     character cards.
   </p>
   <p>
-    The webpage cannot guarantee that the text will fit on the letterboard, as it does not (yet) account for variations
-    in card widths.
+    Lines are judged to be too long if they exceed a certain number of characters, based on the approximation that all characters are the same width.
+  </p>
+  <p>
+    Scroll to the bottom to copy your message once finished.
   </p>
 
   <!-- React component root. See https://reactjs.org/docs/add-react-to-a-website.html -->
@@ -116,6 +118,7 @@
      * - Concatenated message output
      * - Line length validation
      * - Counts character by type
+     * - Validating text against an inventory of character cards
      */
     class SignMessage {
 
@@ -423,7 +426,8 @@
     }
 
     /**
-     * A display of the available and remaining character cards
+     * A display of the available and remaining character cards,
+     * along with validation errors
      */
     const InventoryView = ({ inventoryReport }) => {
       return (
@@ -435,7 +439,52 @@
           {inventoryReport.insufficientCards ? (<ValidationMessage
             text={"Too many of the following characters were used: " + inventoryReport.insufficientCards}
           />) : null}
+          <InventoryTable inventoryByCard={inventoryReport.inventoryByCard} />
         </React.Fragment>
+      );
+    }
+
+    /**
+     * A table of the available and remaining character cards
+     */
+    const InventoryTable = ({ inventoryByCard }) => {
+      const borderStyle = {
+        border: '1px solid rgb(200,200,200)',
+        borderCollapse: 'collapse',
+      }
+      const headerStyle = {
+        ...borderStyle,
+        padding: '10px 20px'
+      }
+      const cellStyle = {
+        borderTop: '1px solid rgb(200,200,200)',
+        borderBottom: '1px solid rgb(200,200,200)',
+        padding: '2px 10px'
+      }
+
+      const rows = inventoryByCard.map((cur) => {
+        return (
+          <tr key={cur.key} style={cur.remaining < 0 ? { color: 'red' } : {}}>
+            <th style={cellStyle} scope="row">{cur.name}</th>
+            <td style={cellStyle}>{cur.original}</td>
+            <td style={cellStyle}>{cur.remaining}</td>
+          </tr>
+        );
+      });
+
+      return (
+        <table style={borderStyle}>
+          <thead>
+            <tr>
+              <th style={headerStyle} scope="col">Letterboard card</th>
+              <th style={headerStyle} scope="col">Original quantity</th>
+              <th style={headerStyle} scope="col">Remaining quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows}
+          </tbody>
+        </table>
       );
     }
 
@@ -454,7 +503,7 @@
       } else {
         content = (
           <React.Fragment>
-            <p>This is a copy of the text you entered above, that you can easily paste into another program (such as an email):</p>
+            <p>This is a copy of the text you entered above, that you can easily paste into another program or document:</p>
             {props.children}
           </React.Fragment>
         );
